@@ -1,8 +1,10 @@
+package Model;
+
 import android.media.MediaRecorder;
 import android.os.Environment;
 import java.io.File;
 import java.io.IOException;
-import okhttp3.*;
+import okhttp3.*;//okhttp要在built.gradle.kts文件下implementation("com.squareup.okhttp3:okhttp:5.1.0")
 public class AudioRecorder {
     private MediaRecorder mediaRecorder;
     private String currentFilePath;
