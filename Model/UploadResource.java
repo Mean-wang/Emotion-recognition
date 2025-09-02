@@ -1,37 +1,15 @@
+//上传工具，将资源上传
 package Model;
 
-import android.media.MediaRecorder;
-import android.os.Environment;
+import androidx.annotation.NonNull;
+
 import java.io.File;
 import java.io.IOException;
-import okhttp3.*;//okhttp要在built.gradle.kts文件下implementation("com.squareup.okhttp3:okhttp:5.1.0")
-public class AudioRecorder {
-    private MediaRecorder mediaRecorder;
+
+import okhttp3.*;
+
+public class UploadResource {
     private String currentFilePath;
-
-    public void startRecording() throws IOException {
-        String fileName = "audio_" + System.currentTimeMillis() + ".mp4";
-        File storageDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC);
-        File outputFile = new File(storageDir, fileName);
-        currentFilePath = outputFile.getAbsolutePath();
-
-        mediaRecorder = new MediaRecorder();
-        mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-        mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
-        mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
-        mediaRecorder.setOutputFile(currentFilePath);
-        mediaRecorder.prepare();
-        mediaRecorder.start();
-    }
-
-    public void stopRecording() {
-        if (mediaRecorder != null) {
-            mediaRecorder.stop();
-            mediaRecorder.release();
-            mediaRecorder = null;
-        }
-    }
-
     public void uploadAudioToServer(String serverUrl, String userId, UploadCallback callback) {
         File audioFile = new File(currentFilePath);
         if (!audioFile.exists()) {
@@ -55,12 +33,12 @@ public class AudioRecorder {
 
         client.newCall(request).enqueue(new Callback() {
             @Override
-            public void onFailure(Call call, IOException e) {
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
                 callback.onFailure(e.getMessage());
             }
 
             @Override
-            public void onResponse(Call call, Response response) throws IOException {
+            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
                 if (response.isSuccessful()) {
                     callback.onSuccess(response.body().string());
                 } else {
@@ -75,4 +53,3 @@ public class AudioRecorder {
         void onFailure(String error);
     }
 }
-
