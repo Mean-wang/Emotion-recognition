@@ -1,23 +1,25 @@
-//录音工作与上传分开
 package Model;
+
+import static android.content.ContentValues.TAG;
 
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
+import android.icu.text.SimpleDateFormat;
 import android.media.MediaRecorder;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.util.Log;
-
 import androidx.core.app.NotificationCompat;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.Calendar;
+import java.util.Date;
+import java.util.Locale;
 
 /**
  * 后台录音服务，使用前台服务保证在后台持续运行
@@ -43,7 +45,7 @@ public class RecordingService extends Service {
     private Runnable recordingRunnable;      // 定时执行的任务
 
     // 录音参数配置
-    private static final int RECORD_DURATION = 30 * 60 * 1000; // 每次录音时长30分钟
+    private static final int RECORD_DURATION =30* 60 * 1000; // 每次录音时长30分钟
     private static final int CHECK_INTERVAL = 5 * 60 * 1000;   // 每5分钟检查一次
 
     /**
@@ -77,6 +79,10 @@ public class RecordingService extends Service {
         return START_STICKY;
     }
 
+    /**
+     * 设置定时录音任务
+     * 每天上午9点和下午3点各录制30分钟
+     */
     private void startScheduledRecording() {
         recordingRunnable = new Runnable() {
             @Override
@@ -89,14 +95,14 @@ public class RecordingService extends Service {
                 Log.d("RecordingService", "检查录音时间，当前时间: " + hour + ":" + minute);
 
                 // 检查是否在指定的录音时间段（上午9点或下午3点）
-                    startRecording();
+                Log.d("RecordingService", "开始录音");
+                startRecording();
 
-                    // 30分钟后停止录音
-                    handler.postDelayed(() -> {
-                        stopRecording();
-                        Log.d("RecordingService", "定时录音结束");
-                    }, RECORD_DURATION);
-                }
+                // 30分钟后停止录音
+                handler.postDelayed(() -> {
+                    stopRecording();
+                    Log.d("RecordingService", "定时录音结束");
+                }, RECORD_DURATION);
 
                 // 每5分钟检查一次（避免精确时间错过）
                 handler.postDelayed(this, CHECK_INTERVAL);
@@ -169,6 +175,39 @@ public class RecordingService extends Service {
                 updateNotification("停止录音失败");
             }
         }
+    }
+    //下面是将文件加载到本地上。
+    private File createAudioFile() {
+        // 获取存储目录（优先使用外部存储的Music目录）
+        File storageDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC);
+
+        // 如果外部存储不可用，使用应用专属存储
+        if (!storageDir.exists() && !storageDir.mkdirs()) {
+            storageDir = new File(Environment.getExternalStorageDirectory(),
+                    "Android/data/" + getClass().getPackage().getName() + "/files/Music");
+
+            if (!storageDir.exists() && !storageDir.mkdirs()) {
+                Log.e(TAG, "无法创建存储目录");
+                return null;
+            }
+        }
+
+        // 创建带时间戳的文件名
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault())
+                .format(new Date());
+        String fileName = "AUDIO_" + timeStamp + ".mp4";
+
+        // 创建文件
+        try {
+            File audioFile = new File(storageDir, fileName);
+            if (audioFile.createNewFile()) {
+                return audioFile;
+            }
+        } catch (IOException e) {
+            Log.e(TAG, "创建录音文件失败", e);
+        }
+
+        return null;
     }
 
     /**
